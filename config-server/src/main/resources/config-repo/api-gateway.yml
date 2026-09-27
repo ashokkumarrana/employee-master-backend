@@ -1,0 +1,56 @@
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+
+            # auth-service
+            - id: auth-service
+              uri: lb://AUTH-SERVICE
+              predicates:
+                - Path=/auth/**
+              filters:
+                - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+
+            # employee-service
+            - id: employee-service
+              uri: lb://EMPLOYEE-SERVICE
+              predicates:
+                - Path=/employee/**
+              filters:
+                - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+
+            # dropdown-service
+            - id: dropdown-service
+              uri: lb://DROPDOWN-SERVICE
+              predicates:
+                - Path=/dropdown/**
+              filters:
+                - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+
+            cors-configurations:
+              '[/**]':
+                allowedOrigins:
+                  - "http://localhost:5173"
+
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+
+                allowedHeaders:
+                  - "*"
+
+                exposedHeaders:
+                  - "Content-Disposition"
+
+                allowCredentials: true
+
+server:
+  port: 8081
