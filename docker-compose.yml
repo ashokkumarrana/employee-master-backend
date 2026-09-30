@@ -1,0 +1,116 @@
+services:
+
+  mysql:
+    container_name: employee-master-mysql
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql
+      TZ: Asia/Kolkata
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -pmysql --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  redis:
+    container_name: employee-master-redis
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  config-server:
+    image: employee-master-config-server
+    build: ./config-server
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8888/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  eureka-server:
+    image: employee-master-eureka-server
+    build: ./eureka-server
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8761/ > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  auth-service:
+    image: employee-master-auth-service
+    build: ./auth-service
+    environment:
+      TZ: Asia/Kolkata
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      MYSQL_HOST: mysql
+    depends_on:
+      mysql:         { condition: service_healthy }
+      config-server: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  dropdown-service:
+    image: employee-master-dropdown-service
+    build:
+      context: .
+      dockerfile: dropdown-service/Dockerfile
+    environment:
+      TZ: Asia/Kolkata
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      MYSQL_HOST: mysql
+      REDIS_HOST: redis
+    depends_on:
+      mysql:         { condition: service_healthy }
+      redis:         { condition: service_healthy }
+      config-server: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  employee-service:
+    image: employee-master-employee-service
+    build:
+      context: .
+      dockerfile: employee-service/Dockerfile
+    environment:
+      TZ: Asia/Kolkata
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      MYSQL_HOST: mysql
+      REDIS_HOST: redis
+      AUTH_SERVICE_URL: http://auth-service:8082
+      DROPDOWN_SERVICE_URL: http://dropdown-service:8083
+    volumes:
+      - employee_uploads:/app/uploads
+    depends_on:
+      mysql:         { condition: service_healthy }
+      redis:         { condition: service_healthy }
+      config-server: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  api-gateway:
+    image: employee-master-api-gateway
+    build: ./api-gateway
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    ports:
+      - "8081:8081"
+    depends_on:
+      config-server: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+volumes:
+  mysql_data:
+  employee_uploads:

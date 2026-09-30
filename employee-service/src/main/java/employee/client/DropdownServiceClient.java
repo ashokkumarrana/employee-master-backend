@@ -9,7 +9,7 @@ import java.util.List;
 
 @FeignClient(
         name = "dropdown-service",
-        url = "http://localhost:8084",
+        url = "${DROPDOWN_SERVICE_URL:http://localhost:8084}",
         configuration = FeignConfig.class
 )
 public interface DropdownServiceClient {
