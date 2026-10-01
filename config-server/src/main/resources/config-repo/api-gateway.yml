@@ -39,6 +39,7 @@ spring:
               '[/**]':
                 allowedOrigins:
                   - "http://localhost:5173"
+                  - "https://employee-master-frontend.vercel.app"
 
                 allowedMethods:
                   - GET
