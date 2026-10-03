@@ -19,11 +19,7 @@ public final class ExcelUtil {
     private static final String XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     public static ResponseEntity<ByteArrayResource> buildExcelDownloadResponse(byte[] fileContent, String fileName) {
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
-                .contentType(MediaType.parseMediaType(XLSX_CONTENT_TYPE))
-                .contentLength(fileContent.length)
-                .body(new ByteArrayResource(fileContent));
+        return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName).contentType(MediaType.parseMediaType(XLSX_CONTENT_TYPE)).contentLength(fileContent.length).body(new ByteArrayResource(fileContent));
     }
 
     public static List<LinkedHashMap<String, String>> parseAndValidateExcelRows(byte[] fileContent, List<String> expectedHeaders, int headerRowIndex) {
@@ -103,13 +99,12 @@ public final class ExcelUtil {
                 cell.setCellValue(headers.get(i));
                 cell.setCellStyle(headerStyle);
             }
-            CellStyle plainRowStyle = null;
+            CellStyle plainRowStyle = createPlainStyle(workbook);
             CellStyle savedRowStyle = null;
             CellStyle savedStatusStyle = null;
             CellStyle invalidStatusStyle = null;
             CellStyle duplicateStatusStyle = null;
             if (statusHeader != null) {
-                plainRowStyle = createPlainStyle(workbook);
                 savedRowStyle = createStatusStyle(workbook, IndexedColors.LIGHT_GREEN, false);
                 savedStatusStyle = createStatusStyle(workbook, IndexedColors.LIGHT_GREEN, true);
                 invalidStatusStyle = createStatusStyle(workbook, IndexedColors.ROSE, true);
@@ -125,6 +120,7 @@ public final class ExcelUtil {
                         Cell cell = row.createCell(i);
                         cell.setCellValue(value == null ? "" : value);
                         if (statusHeader == null) {
+                            cell.setCellStyle(plainRowStyle);
                             continue;
                         }
                         boolean statusColumn = statusHeader.equals(headers.get(i));
